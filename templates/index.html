@@ -109,7 +109,7 @@ button:hover {
     }
 
 
-    /* Styling fÃ¼r den "Edit VM Configuration" Button */
+    /* Styling für den "Edit VM Configuration" Button */
     .edit-vm-button {
         background-color: #4CAF50;
         color: white;
@@ -195,7 +195,7 @@ function uploadAPK(inputId) {
     var inputFile = document.getElementById(inputId);
     var file = inputFile.files[0];
 
-    // ÃœberprÃ¼fen, ob eine Datei ausgewÃ¤hlt wurde
+    // Überprüfen, ob eine Datei ausgewählt wurde
     if (!file) {
         alert("Please select a file first.");
         return;
@@ -222,7 +222,7 @@ function uploadAPK(inputId) {
     // Load Status
     function loadStatus() {
         $.ajax({
-            url: '/devices/waiting', // URL aktualisiert, um wartende GerÃ¤te zu laden
+            url: '/devices/waiting', // URL aktualisiert, um wartende Geräte zu laden
             type: 'GET',
             success: function(response) {
                 var rows = "";
@@ -260,7 +260,7 @@ function uploadAPK(inputId) {
                             "</tr>";
                 });
                 $("#device-table tbody").html(rows);
-                loadOrigins(); // Origins aus GerÃ¤tedaten laden
+                loadOrigins(); // Origins aus Gerätedaten laden
             },
             error: function(xhr, status, error) {
                 console.error("Error loading devices:", xhr.responseText);
@@ -268,7 +268,7 @@ function uploadAPK(inputId) {
         });
     }
 
-    // Load Origins fÃ¼r die Zuweisung
+    // Load Origins für die Zuweisung
     function loadOrigins() {
         $.ajax({
             url: '/devices/all', // Verwenden des vorhandenen Endpunkts
@@ -296,7 +296,7 @@ function uploadAPK(inputId) {
             contentType: 'application/json',
             data: JSON.stringify({ mac: mac, origin: origin }),
             success: function(response) {
-                loadDevices(); // GerÃ¤te neu laden
+                loadDevices(); // Geräte neu laden
                 $('#mac').val('');
                 $('#origin').val('');
             },
@@ -313,7 +313,7 @@ function uploadAPK(inputId) {
                 url: '/devices/' + deviceId, // URL zu Ihrer Flask DELETE-Route
                 type: 'DELETE',
                 success: function(response) {
-                    loadDevices(); // GerÃ¤te neu laden
+                    loadDevices(); // Geräte neu laden
                 },
                 error: function(xhr, status, error) {
                     alert("Error deleting device: " + xhr.responseText);
