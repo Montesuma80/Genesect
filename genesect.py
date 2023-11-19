@@ -246,20 +246,11 @@ def modify_xml_config(origin_value, config_path='path_to_config.xml'):
                 elem.text = origin_value  # Aktualisieren des Textinhalts des Elements
                 break
 
-        # Verwendung von tempfile.NamedTemporaryFile
-        with tempfile.NamedTemporaryFile(delete=True, mode='w+', encoding='utf-8', suffix='.xml') as temp_file:
-            tree.write(temp_file, encoding='utf-8', xml_declaration=True)
-            temp_file.flush()
-            temp_file.seek(0)
-            
-            # Hier können Sie die temporäre Datei verwenden, z.B. um ihren Inhalt zu lesen oder zu verarbeiten
-            # ...
-
-            # Der Pfad der temporären Datei
+        with tempfile.NamedTemporaryFile(delete=False, mode='w', encoding='utf-8', suffix='.xml') as temp_file:
+            tree.write(temp_file, encoding='unicode', xml_declaration=True)
             modified_config_path = temp_file.name
 
-            # Rückgabe des Pfades zur temporären Datei
-            return modified_config_path
+        return modified_config_path
 
     except ET.ParseError as e:
         print(f"Error parsing XML: {e}")
