@@ -65,17 +65,17 @@ def create_tables():
         connection.commit()
     except pymysql.MySQLError as e:
         print(f"Failed to create tables: {e}")
-        raise  # Wichtig: Fehler weitergeben
+        raise 
     finally:
         pool.release(connection)
 
 
 
 @app.route('/devices/all', methods=['GET'])
-@auth.login_required  # Add this line to require authentication
+@auth.login_required  
 def get_all_devices():
-    try:        # Führen Sie die Datenbankabfrage aus, um alle Geräte abzurufen
-        connection = pool.get_conn()  # Hier sollte Ihre Verbindungspool-Logik verwendet werden
+    try:        
+        connection = pool.get_conn()  
         with connection.cursor() as cursor:
             cursor.execute("SELECT * FROM device")
             devices = cursor.fetchall()
@@ -90,11 +90,9 @@ def get_all_devices():
 @app.route('/status/all', methods=['GET'])
 def get_all_status():
     try:
-        # Nehmen wir an, Sie haben eine Funktion, die Ihre Datenbankabfrage ausführt
         status_list = query_database("SELECT * FROM status")
         return jsonify(status_list)
     except Exception as e:
-        # Geeignetes Error-Handling hier einfügen
         return jsonify({'error': str(e)}), 500
 
 def query_database(query, args=None, fetchone=True):
@@ -192,7 +190,7 @@ def add_device():
     if success:
         return jsonify({'message': message}), 200
     else:
-        return jsonify({'error': message}), 500  # Ändere den Statuscode auf 500 für Datenbankfehler
+        return jsonify({'error': message}), 500 
 
 
 from flask import jsonify, abort
@@ -415,5 +413,5 @@ def download_apk(apk_name):
         return jsonify({'error': 'APK not found'}), 404
 
 if __name__ == '__main__':
-    create_tables()  # Aufruf hier einfügen
+    create_tables() 
     app.run(debug=True, host=SERVER_IP, port=SERVER_PORT)
