@@ -10,6 +10,8 @@ import os
 import re
 from datetime import datetime
 from flask_cors import CORS
+import tempfile
+
 
 app = Flask(__name__)
 CORS(app)
@@ -109,15 +111,21 @@ def query_database(query, args=None, fetchone=True):
 
 def modify_xml_config(origin_value, config_path='path_to_config.xml'):
     try:
+        # XML-Datei einlesen
         tree = ET.parse(config_path)
         root = tree.getroot()
+
+        # Aktualisieren des 'origin'-Wertes
         for elem in root.iter('string'):
             if elem.get('name') == 'origin':
-                elem.set('value', origin_value)
+                elem.text = origin_value
                 break
-        modified_config_path = 'path_to_modified_config.xml'
-        tree.write(modified_config_path, encoding='utf-8', xml_declaration=True)
-        return modified_config_path
+
+        # Erstellen eines temporären Ordners
+        with tempfile.TemporaryDirectory() as temp_dir:
+            modified_config_path = os.path.join(temp_dir, 'modified_config.xml')
+            tree.write(modified_config_path, encoding='utf-8', xml_declaration=True)
+            return modified_config_path
     except ET.ParseError as e:
         print(f"Error parsing XML: {e}")
         return None
