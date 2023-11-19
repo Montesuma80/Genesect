@@ -128,18 +128,17 @@ button:hover {
     <button onclick="openEditVMModal()" class="custom-button">Edit VM Configuration</button>
 
 <div class="upload-buttons">
-    <input type="file" id="pogo-apk-file" accept=".apk" style="display: none;">
-    <label for="pogo-apk-file" class="custom-button">Select Pogo APK</label>
-    <button onclick="uploadAPK('pogo-apk-file')" class="custom-button">Upload Pogo</button>
+    <button onclick="document.getElementById('pogo-apk-file').click()" class="custom-upload-button">Update Pogo</button>
+    <input type="file" id="pogo-apk-file" accept=".apk" style="display: none;" onchange="uploadAPK('pogo-apk-file')">
     <progress id="pogo-upload-progress" value="0" max="100" style="display: none;"></progress>
 </div>
 
 <div class="upload-buttons">
-    <input type="file" id="vmapper-apk-file" accept=".apk" style="display: none;">
-    <label for="vmapper-apk-file" class="custom-button">Select Vmapper APK</label>
-    <button onclick="uploadAPK('vmapper-apk-file')" class="custom-button">Upload Vmapper</button>
+    <button onclick="document.getElementById('vmapper-apk-file').click()" class="custom-upload-button">Update Vmapper</button>
+    <input type="file" id="vmapper-apk-file" accept=".apk" style="display: none;" onchange="uploadAPK('vmapper-apk-file')">
     <progress id="vmapper-upload-progress" value="0" max="100" style="display: none;"></progress>
 </div>
+
 
     <h1>Status Management</h1>
     <table id="status-table">
@@ -195,7 +194,6 @@ function uploadAPK(inputId) {
     var inputFile = document.getElementById(inputId);
     var file = inputFile.files[0];
 
-    // Überprüfen, ob eine Datei ausgewählt wurde
     if (!file) {
         alert("Please select a file first.");
         return;
@@ -204,21 +202,39 @@ function uploadAPK(inputId) {
     var formData = new FormData();
     formData.append('file', file);
 
+    // Fortschrittsanzeige anzeigen
+    var progressId = inputId === 'pogo-apk-file' ? 'pogo-upload-progress' : 'vmapper-upload-progress';
+    var progressBar = document.getElementById(progressId);
+    progressBar.style.display = 'block';
+
     $.ajax({
         url: '/upload_apk',
         type: 'POST',
         data: formData,
         processData: false,
         contentType: false,
+        xhr: function() {
+            var xhr = new window.XMLHttpRequest();
+            xhr.upload.addEventListener("progress", function(evt) {
+                if (evt.lengthComputable) {
+                    var percentComplete = evt.loaded / evt.total;
+                    progressBar.value = percentComplete * 100;
+                }
+           }, false);
+           return xhr;
+        },
         success: function(response) {
             alert("APK uploaded successfully");
+            progressBar.style.display = 'none';
+            progressBar.value = 0;
         },
         error: function(xhr, status, error) {
             alert("Error uploading APK: " + xhr.responseText);
+            progressBar.style.display = 'none';
+            progressBar.value = 0;
         }
     });
 }
-
     // Load Status
     function loadStatus() {
         $.ajax({
