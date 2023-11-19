@@ -109,30 +109,6 @@ def query_database(query, args=None, fetchone=True):
     finally:
         pool.release(connection)
 
-def modify_xml_config(origin_value, config_path='path_to_config.xml'):
-    try:
-        # XML-Datei einlesen
-        tree = ET.parse(config_path)
-        root = tree.getroot()
-
-        # Aktualisieren des 'origin'-Wertes
-        for elem in root.iter('string'):
-            if elem.get('name') == 'origin':
-                elem.text = origin_value
-                break
-
-        # Erstellen eines temporären Ordners
-        with tempfile.TemporaryDirectory() as temp_dir:
-            modified_config_path = os.path.join(temp_dir, 'modified_config.xml')
-            tree.write(modified_config_path, encoding='utf-8', xml_declaration=True)
-            return modified_config_path
-    except ET.ParseError as e:
-        print(f"Error parsing XML: {e}")
-        return None
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        return None
-
 
 @app.route('/devices/waiting', methods=['GET'])
 @auth.login_required
@@ -260,6 +236,7 @@ def delete_device(device_id):
     finally:
         pool.release(connection)
 
+
 def modify_xml_config(origin_value, config_path='path_to_config.xml'):
     try:
         tree = ET.parse(config_path)
@@ -268,15 +245,29 @@ def modify_xml_config(origin_value, config_path='path_to_config.xml'):
             if elem.get('name') == 'origin':
                 elem.text = origin_value  # Aktualisieren des Textinhalts des Elements
                 break
-        modified_config_path = 'path_to_modified_config.xml'
-        tree.write(modified_config_path, encoding='utf-8', xml_declaration=True)
-        return modified_config_path
+
+        # Verwendung von tempfile.NamedTemporaryFile
+        with tempfile.NamedTemporaryFile(delete=True, mode='w+', encoding='utf-8', suffix='.xml') as temp_file:
+            tree.write(temp_file, encoding='utf-8', xml_declaration=True)
+            temp_file.flush()
+            temp_file.seek(0)
+            
+            # Hier können Sie die temporäre Datei verwenden, z.B. um ihren Inhalt zu lesen oder zu verarbeiten
+            # ...
+
+            # Der Pfad der temporären Datei
+            modified_config_path = temp_file.name
+
+            # Rückgabe des Pfades zur temporären Datei
+            return modified_config_path
+
     except ET.ParseError as e:
         print(f"Error parsing XML: {e}")
         return None
     except Exception as e:
         print(f"An error occurred: {e}")
         return None
+
 
 
 
