@@ -13,6 +13,7 @@ from datetime import datetime
 from flask_cors import CORS
 import tempfile
 from apkutils import APK
+from config import users
 
 
 app = Flask(__name__)
@@ -35,9 +36,6 @@ def index():
     return render_template('index.html', config_values=config_values)
 
 
-users = {
-    "test": "hallo123"
-}
 
 @auth.verify_password
 def verify_password(username, password):
