@@ -44,11 +44,17 @@ tr:hover {
 }
 
 .action-btn.delete {
-    background-color: #ffdddd;
+    background-color: #ff0000; /* Kräftiges Rot */
+    color: white; /* Weißer Text für bessere Lesbarkeit */
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
 }
 
-.action-btn:hover {
-    background-color: #d1e2f3;
+.action-btn.delete:hover {
+    background-color: #cc0000; /* Dunkleres Rot beim Hover */
 }
 
 .container {
@@ -128,17 +134,14 @@ button:hover {
     <button onclick="openEditVMModal()" class="custom-button">Edit VM Configuration</button>
 
 <div class="upload-buttons">
-    <button onclick="document.getElementById('pogo-apk-file').click()" class="custom-upload-button">Update Pogo</button>
-    <input type="file" id="pogo-apk-file" accept=".apk" style="display: none;" onchange="uploadAPK('pogo-apk-file')">
-    <progress id="pogo-upload-progress" value="0" max="100" style="display: none;"></progress>
+    <button onclick="document.getElementById('universal-apk-file').click()" class="custom-upload-button">Upload APK</button>
+    <input type="file" id="universal-apk-file" accept=".apk" style="display: none;" onchange="uploadAPK('universal-apk-file')">
+    <progress id="universal-upload-progress" value="0" max="100" style="display: none;"></progress>
 </div>
-
-<div class="upload-buttons">
-    <button onclick="document.getElementById('vmapper-apk-file').click()" class="custom-upload-button">Update Vmapper</button>
-    <input type="file" id="vmapper-apk-file" accept=".apk" style="display: none;" onchange="uploadAPK('vmapper-apk-file')">
-    <progress id="vmapper-upload-progress" value="0" max="100" style="display: none;"></progress>
+<div>
+    <p id="pogo-version">Pogo Version: Loading...</p>
+    <p id="vmapper-version">Vmapper Version: Loading...</p>
 </div>
-
 
     <h1>Status Management</h1>
     <table id="status-table">
@@ -189,6 +192,29 @@ button:hover {
     window.origins = []; // Global variable for origins
     window.selectedMac = ''; // MAC address of the selected device
 
+function loadAPKVersions() {
+    $.ajax({
+        url: '/get_apk_versions_info',
+        type: 'GET',
+        success: function(response) {
+            // Setzen der Versionen in den HTML-Elementen
+            $('#pogo-version').text('Pogo Version: ' + response['pogo.apk']);
+            $('#vmapper-version').text('Vmapper Version: ' + response['vmapperd.apk']);
+        },
+        error: function(xhr, status, error) {
+            // Fehlerbehandlung
+            console.error("Fehler beim Laden der APK-Versionen: ", xhr.responseText);
+            $('#pogo-version').text('Pogo Version: Fehler beim Laden');
+            $('#vmapper-version').text('Vmapper Version: Fehler beim Laden');
+        }
+    });
+}
+
+// Rufen Sie die Funktion beim Laden der Seite auf
+$(document).ready(function() {
+    loadAPKVersions();
+});
+
 
 function uploadAPK(inputId) {
     var inputFile = document.getElementById(inputId);
@@ -203,12 +229,11 @@ function uploadAPK(inputId) {
     formData.append('file', file);
 
     // Fortschrittsanzeige anzeigen
-    var progressId = inputId === 'pogo-apk-file' ? 'pogo-upload-progress' : 'vmapper-upload-progress';
-    var progressBar = document.getElementById(progressId);
+    var progressBar = document.getElementById('universal-upload-progress');
     progressBar.style.display = 'block';
 
     $.ajax({
-        url: '/upload_apk',
+        url: '/upload_apk', // Stellen Sie sicher, dass diese URL Ihre Upload-Logik behandelt
         type: 'POST',
         data: formData,
         processData: false,
@@ -227,6 +252,7 @@ function uploadAPK(inputId) {
             alert("APK uploaded successfully");
             progressBar.style.display = 'none';
             progressBar.value = 0;
+            // Hier können Sie zusätzliche Aktionen hinzufügen, z.B. das Aktualisieren der APK-Versionen
         },
         error: function(xhr, status, error) {
             alert("Error uploading APK: " + xhr.responseText);
@@ -235,6 +261,8 @@ function uploadAPK(inputId) {
         }
     });
 }
+
+
     // Load Status
     function loadStatus() {
         $.ajax({
@@ -258,32 +286,31 @@ function uploadAPK(inputId) {
         });
     }
 
-    // Load Devices
-    function loadDevices() {
-        $.ajax({
-            url: '/devices/all', // URL zu Ihrer Flask-Route
-            type: 'GET',
-            success: function(response) {
-                var rows = "";
-                response.devices.forEach(function(device) {
-                    rows += "<tr>" +
-                            "<td>" + device.id + "</td>" +
-                            "<td>" + device.mac + "</td>" +
-                            "<td>" + device.origin + "</td>" +
-                            "<td>" +
-                                "<button class='action-btn delete' onclick='deleteDevice(" + device.id + ")'>Delete</button>" +
-                            "</td>" +
-                            "</tr>";
-                });
-                $("#device-table tbody").html(rows);
-                loadOrigins(); // Origins aus Gerätedaten laden
-            },
-            error: function(xhr, status, error) {
-                console.error("Error loading devices:", xhr.responseText);
-            }
-        });
-    }
-
+// Load Devices
+function loadDevices() {
+    $.ajax({
+        url: '/devices/all', // URL zu Ihrer Flask-Route
+        type: 'GET',
+        success: function(response) {
+            var rows = "";
+            response.devices.forEach(function(device) {
+                rows += "<tr>" +
+                        "<td>" + device.id + "</td>" +
+                        "<td>" + device.origin + "</td>" + // Origin hier
+                        "<td>" + device.mac + "</td>" + // MAC hier
+                        "<td>" +
+                            "<button class='action-btn delete' onclick='deleteDevice(" + device.id + ")'>Delete</button>" +
+                        "</td>" +
+                        "</tr>";
+            });
+            $("#device-table tbody").html(rows);
+            loadOrigins(); // Origins aus Gerätedaten laden
+        },
+        error: function(xhr, status, error) {
+            console.error("Error loading devices:", xhr.responseText);
+        }
+    });
+}
     // Load Origins für die Zuweisung
     function loadOrigins() {
         $.ajax({
