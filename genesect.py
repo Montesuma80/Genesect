@@ -7,10 +7,12 @@ from pymysqlpool.pool import Pool
 from config import DB_CONFIG, SERVER_IP, SERVER_PORT, APK_BASE_PATH, CONFIG_FILE_PATH, VERSIONS_FILE
 import logging
 import os
+import json
 import re
 from datetime import datetime
 from flask_cors import CORS
 import tempfile
+from apkutils import APK
 
 
 app = Flask(__name__)
@@ -368,6 +370,41 @@ def handle_mac_request():
         logger.error(f"Ein Fehler ist aufgetreten: {e}")
         return jsonify({'error': 'Internal server error'}), 500
 
+def get_apk_version(apk_path):
+    try:
+        apk = APK(apk_path)
+        version = apk.get_manifest()['@android:versionName']
+        logging.info(f"APK-Version gefunden: {version}")
+        return version
+    except Exception as e:
+        logging.error(f"Fehler beim Auslesen der APK-Version: {e}")
+        return None
+
+def update_versions_file(apk_name, version, versions_file_path):
+    try:
+        # Überprüfen, ob die JSON-Datei existiert und nicht leer ist.
+        if not os.path.exists(versions_file_path) or os.stat(versions_file_path).st_size == 0:
+            with open(versions_file_path, 'w') as file:
+                json.dump({}, file)
+
+        # Lesen der existierenden Daten aus der JSON-Datei
+        with open(versions_file_path, 'r') as file:
+            try:
+                versions = json.load(file)
+            except json.JSONDecodeError:
+                # Wenn die Datei nicht im JSON-Format ist, initialisieren Sie sie mit einem leeren Objekt
+                versions = {}
+
+        # Aktualisieren der Daten
+        versions[apk_name] = version
+
+        # Zurückschreiben der aktualisierten Daten in die JSON-Datei
+        with open(versions_file_path, 'w') as file:
+            json.dump(versions, file, indent=4)
+        logging.info(f"Versionsdatei aktualisiert: {versions_file_path}")
+    except Exception as e:
+        logging.error(f"Fehler beim Aktualisieren der Versionsdatei: {e}")
+
 
 @app.route('/upload_apk', methods=['POST'])
 @auth.login_required
@@ -390,7 +427,14 @@ def upload_apk():
 
     # Speichern der Datei
     file.save(save_path)
-    return jsonify({'message': f'File saved as {os.path.basename(save_path)}'}), 200
+
+    # APK-Version auslesen und in JSON-Datei speichern
+    apk_version = get_apk_version(save_path)
+    if apk_version:
+        update_versions_file(os.path.basename(save_path), apk_version, VERSIONS_FILE)
+        return jsonify({'message': f'File saved as {os.path.basename(save_path)}, version {apk_version}'}), 200
+    else:
+        return jsonify({'error': 'Failed to read APK version'}), 500
 
 
 @app.route('/apk/<apk_name>/download', methods=['GET'])
