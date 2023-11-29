@@ -5,14 +5,116 @@
     <title>Device and Status Management</title>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <style>
-body {
-    font-family: 'Roboto', sans-serif;
-    margin: 0;
-    padding: 0;
-    background-color: #f4f7f6;
-    color: #333;
-}
 
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f7f6;
+            color: #333;
+        }
+
+        .container {
+            padding: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+    .fixed-fields {
+        display: table-row; /* Anzeigen der festgelegten Felder als Tabellenzeilen */
+    }
+    .other-fields {
+        display: none; /* Ausblenden der anderen Felder */
+    }
+    .form-container {
+        display: flex;
+    }
+
+    .left-table,
+    .right-table {
+        flex: 1;
+        padding: 10px;
+    }
+        .form-group label {
+            flex-basis: 40%;
+            text-align: left;
+        }
+
+        .form-group .input-container {
+            flex-basis: 55%;
+            text-align: right;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .switch input { 
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            -webkit-transition: .4s;
+            transition: .4s;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            -webkit-transition: .4s;
+            transition: .4s;
+        }
+
+        input:checked + .slider {
+            background-color: #2196F3;
+        }
+
+        input:focus + .slider {
+            box-shadow: 0 0 1px #2196F3;
+        }
+
+        input:checked + .slider:before {
+            -webkit-transform: translateX(26px);
+            -ms-transform: translateX(26px);
+            transform: translateX(26px);
+        }
+
+        .slider.round {
+            border-radius: 34px;
+        }
+
+        .slider.round:before {
+            border-radius: 50%;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
 table {
     width: 100%;
     border-collapse: collapse;
@@ -60,7 +162,6 @@ tr:hover {
 .container {
     padding: 20px;
 }
-
 input[type="text"], select {
     margin: 5px 0;
     padding: 8px;
@@ -130,9 +231,86 @@ button:hover {
 <body>
 
 <div class="container">
+    <!-- Button, um das Popup zu öffnen -->
+    <button onclick="openConfigPopup()">Edit vmapper conf</button>
 
-    <button onclick="openEditVMModal()" class="custom-button">Edit VM Configuration</button>
+    <!-- Popup-Fenster -->
+    <div id="configPopup" style="display:none;">
+        <!-- Popup-Inhalt -->
+        <div>
+            <span onclick="closeConfigPopup()" style="cursor:pointer;">&times;</span>
+            <h1>Edit vmapper Configuration</h1>
+            <form id="config-form" method="POST" action="/edit_vm_conf" onsubmit="submitConfig(event)">
+<div class="form-container">
+    <div class="left-table">
+        <table>
+            <tbody>
+                <!-- Feste Felder zuerst -->
+                <tr>
+                    <td><label for="authuser">authuser</label></td>
+                    <td><input type="text" id="authuser" name="authuser" value="{{ config_values['authuser'] }}" placeholder="Enter authuser"></td>
+                </tr>
+                <tr>
+                    <td><label for="authpassword">authpassword</label></td>
+                    <td><input type="text" id="authpassword" name="authpassword" value="{{ config_values['authpassword'] }}" placeholder="Enter authpassword"></td>
+                </tr>
+                <tr>
+                    <td><label for="authid">authid</label></td>
+                    <td><input type="text" id="authid" name="authid" value="{{ config_values['authid'] }}" placeholder="Enter authid"></td>
+                </tr>
+                <tr>
+                    <td><label for="websocketurl">websocketurl</label></td>
+                    <td><input type="text" id="websocketurl" name="websocketurl" value="{{ config_values['websocketurl'] }}" placeholder="Enter websocketurl"></td>
+                </tr>
+                <tr>
+                    <td><label for="scanmode">scanmode</label></td>
+                    <td><input type="text" id="scanmode" name="scanmode" value="{{ config_values['scanmode'] }}" placeholder="Enter scanmode"></td>
+                </tr>
+                <tr>
+                    <td><label for="workers">workers</label></td>
+                    <td><input type="text" id="workers" name="workers" value="{{ config_values['workers'] }}" placeholder="Enter workers"></td>
+                </tr>
+                <!-- Schleife für zusätzliche nicht-Boolesche Werte, die nicht origin und useRawForInstructions sind -->
+                {% for key, value in config_values.items() %}
+                    {% if key not in ['authuser', 'authpassword', 'authid', 'websocketurl', 'scanmode', 'workers', 'origin', 'useRawForInstructions'] and value not in ['true', 'false'] %}
+                        <tr>
+                            <td><label for="{{ key }}">{{ key }}</label></td>
+                            <td><input type="text" id="{{ key }}" name="{{ key }}" value="{{ value }}" placeholder="Enter {{ key }}"></td>
+                        </tr>
+                    {% endif %}
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="right-table">
+        <table>
+            <tbody>
+                <!-- Schleife nur für Boolesche Werte, die nicht origin und useRawForInstructions sind -->
+                {% for key, value in config_values.items() %}
+                    {% if (value == 'true' or value == 'false') and key not in ['origin', 'useRawForInstructions'] %}
+                        <tr>
+                            <td><label for="{{ key }}">{{ key }}</label></td>
+                            <td>
+                                <label class="switch">
+                                    <input type="checkbox" id="{{ key }}" name="{{ key }}" {{ 'checked' if value == 'true' else '' }}>
+                                    <span class="slider round"></span>
+                                </label>
+                            </td>
+                        </tr>
+                    {% endif %}
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <!-- Versteckte Felder für origin und useRawForInstructions -->
+    <input type="hidden" id="origin" name="origin" value="test">
+    <input type="hidden" id="useRawForInstructions" name="useRawForInstructions" value="true">
+</div>
 
+                <input type="submit" value="Speichern">
+            </form>
+        </div>
+    </div>
 <div class="upload-buttons">
     <button onclick="document.getElementById('universal-apk-file').click()" class="custom-upload-button">Upload APK</button>
     <input type="file" id="universal-apk-file" accept=".apk" style="display: none;" onchange="uploadAPK('universal-apk-file')">
@@ -191,6 +369,34 @@ button:hover {
 <script>
     window.origins = []; // Global variable for origins
     window.selectedMac = ''; // MAC address of the selected device
+
+function openConfigPopup() {
+    document.getElementById("configPopup").style.display = "block";
+}
+
+function closeConfigPopup() {
+    document.getElementById("configPopup").style.display = "none";
+}
+
+function submitConfig(event) {
+    event.preventDefault(); // Verhindert das Neuladen der Seite
+
+    var configData = new FormData(document.querySelector('#config-form')); // Erstellt FormData aus dem Formular
+
+    fetch('/edit_vm_conf', {
+        method: 'POST',
+        body: configData
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert(data.message); // Zeigt ein Popup mit der Nachricht vom Server
+        closeConfigPopup(); // Schließt das Konfigurations-Popup
+    })
+    .catch((error) => {
+        console.error('Error:', error);
+        alert('An error occurred'); // Zeigt eine Fehlermeldung
+    });
+}
 
 function loadAPKVersions() {
     $.ajax({
