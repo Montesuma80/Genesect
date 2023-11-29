@@ -4,7 +4,7 @@ from werkzeug.utils import secure_filename
 import pymysql
 import xml.etree.ElementTree as ET
 from pymysqlpool.pool import Pool
-from config import DB_CONFIG, SERVER_IP, SERVER_PORT, APK_BASE_PATH, CONFIG_FILE_PATH, VERSIONS_FILE
+from config import DB_CONFIG, SERVER_IP, SERVER_PORT
 import logging
 import os
 import json
@@ -14,6 +14,9 @@ from flask_cors import CORS
 import tempfile
 from apkutils import APK
 from config import users
+APK_BASE_PATH = os.path.join(os.path.dirname(__file__), 'apks')
+VERSIONS_FILE = os.path.join(os.path.dirname(__file__), 'apk_versions.json')
+CONFIG_FILE_PATH = 'config.xml'  # Update this with the correct path if needed
 
 
 app = Flask(__name__)
@@ -168,8 +171,9 @@ def add_device():
     origin = data.get('origin', '')
 
     # Validierung der MAC-Adresse
-    if not re.match("[0-9a-fA-F]{12}", mac):
-        return jsonify({'error': 'Ungültige MAC-Adresse.'}), 400
+    if not re.match("^([0-9A-Fa-f]{2}:){5}([0-9A-Fa-f]{2})$", mac):
+       return jsonify({'error': 'Ungültige MAC-Adresse.'}), 400
+
 
     # Validierung der Herkunft (z. B. darf nicht leer sein)
     if not origin:
