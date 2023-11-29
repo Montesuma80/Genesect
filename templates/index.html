@@ -303,7 +303,8 @@ button:hover {
         </table>
     </div>
     <!-- Versteckte Felder für origin und useRawForInstructions -->
-    <input type="hidden" id="origin" name="origin" value="test">
+    <input type="hidden" id="configOrigin" name="configOrigin" value="test">
+
     <input type="hidden" id="useRawForInstructions" name="useRawForInstructions" value="true">
 </div>
 
@@ -337,7 +338,8 @@ button:hover {
     </table>
 
     <h2>Add Device</h2>
-    <input type="text" id="origin" placeholder="Origin">
+
+    <input type="text" id="deviceOrigin" name="deviceOrigin" placeholder="Origin">
     <input type="text" id="mac" placeholder="MAC Address">
     <button onclick="addDevice()">Add Device</button>
 
@@ -397,7 +399,6 @@ function submitConfig(event) {
         alert('An error occurred'); // Zeigt eine Fehlermeldung
     });
 }
-
 function loadAPKVersions() {
     $.ajax({
         url: '/get_apk_versions_info',
@@ -538,7 +539,7 @@ function loadDevices() {
 // Add Device
 function addDevice() {
     var mac = $('#mac').val();
-    var origin = $('#origin').val();
+    var origin = $('#deviceOrigin').val(); // Verwenden Sie 'deviceOrigin' statt 'origin'
     $.ajax({
         url: '/devices', // URL zu Ihrer Flask POST-Route
         type: 'POST',
