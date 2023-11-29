@@ -405,6 +405,11 @@ def update_versions_file(apk_name, version, versions_file_path):
     except Exception as e:
         logging.error(f"Fehler beim Aktualisieren der Versionsdatei: {e}")
 
+@app.route('/get_apk_versions_info')
+def get_apk_versions_info():
+    with open('apks/versions.json', 'r') as file:
+        versions = json.load(file)
+    return jsonify(versions)
 
 @app.route('/upload_apk', methods=['POST'])
 @auth.login_required
