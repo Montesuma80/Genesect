@@ -20,5 +20,12 @@ VERSIONS_FILE = os.path.join(os.path.dirname(__file__), 'apk_versions.json')
 
 CONFIG_FILE_PATH = 'config.xml'  # Aktualisieren Sie dies mit dem korrekten Pfad
 
+#Auth
+users = {
+    "test": "hallo123"
+}
+
+
+
 
 
