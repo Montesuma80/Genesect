@@ -535,24 +535,25 @@ function loadDevices() {
     }
 
     // Add Device
-    function addDevice() {
-        var mac = $('#mac').val();
-        var origin = $('#origin').val();
-        $.ajax({
-            url: '/devices', // URL zu Ihrer Flask POST-Route
-            type: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify({ mac: mac, origin: origin }),
-            success: function(response) {
-                loadDevices(); // Geräte neu laden
-                $('#mac').val('');
-                $('#origin').val('');
-            },
-            error: function(xhr, status, error) {
-                alert("Error adding device: " + xhr.responseText);
-            }
-        });
-    }
+// Add Device
+function addDevice() {
+    var mac = $('#mac').val();
+    var origin = $('#origin').val();
+    $.ajax({
+        url: '/devices', // URL zu Ihrer Flask POST-Route
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ mac: mac, origin: origin }),
+        success: function(response) {
+            alert("Device added successfully");
+            location.reload(); // Seite neu laden
+        },
+        error: function(xhr, status, error) {
+            alert("Error adding device: " + xhr.responseText);
+        }
+    });
+}
+
 
     // Delete Device
     function deleteDevice(deviceId) {
