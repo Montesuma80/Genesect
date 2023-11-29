@@ -421,7 +421,6 @@ $(document).ready(function() {
     loadAPKVersions();
 });
 
-
 function uploadAPK(inputId) {
     var inputFile = document.getElementById(inputId);
     var file = inputFile.files[0];
@@ -458,7 +457,7 @@ function uploadAPK(inputId) {
             alert("APK uploaded successfully");
             progressBar.style.display = 'none';
             progressBar.value = 0;
-            // Hier können Sie zusätzliche Aktionen hinzufügen, z.B. das Aktualisieren der APK-Versionen
+            location.reload(); // Seite neu laden
         },
         error: function(xhr, status, error) {
             alert("Error uploading APK: " + xhr.responseText);
