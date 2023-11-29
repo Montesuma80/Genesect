@@ -15,7 +15,7 @@ import tempfile
 from apkutils import APK
 from config import users
 APK_BASE_PATH = os.path.join(os.path.dirname(__file__), 'apks')
-VERSIONS_FILE = os.path.join(os.path.dirname(__file__), 'apk_versions.json')
+VERSIONS_FILE = os.path.join(os.path.dirname(__file__), 'apks/versions.json')
 CONFIG_FILE_PATH = 'config.xml'  # Update this with the correct path if needed
 
 
