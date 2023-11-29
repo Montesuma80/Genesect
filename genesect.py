@@ -24,9 +24,15 @@ logger = logging.getLogger(__name__)
 @app.route('/')
 
 
-@auth.login_required  # Add this line to require authentication
+@app.route('/')
+@auth.login_required
 def index():
-    return render_template('index.html')
+    # Load the XML values into a dictionary
+    config_values = load_config_values()
+    # Check if config_values is None and handle it appropriately
+    if config_values is None:
+        config_values = {}  # or handle the error in a way that makes sense for your application
+    return render_template('index.html', config_values=config_values)
 
 
 users = {
@@ -309,24 +315,61 @@ def send_vm_config():
     else:
         return jsonify({'error': 'MAC not found'}), 404
 
-@app.route('/vm_conf/update', methods=['POST'])
-@auth.login_required
-def update_vm_config():
-    data = request.get_json()
-    current_mac = data.get('mac')
-    new_origin = data.get('origin')
-    if not current_mac or not new_origin:
-        return jsonify({'error': 'MAC and new origin are required'}), 400
-    updated_rows = query_database("UPDATE device SET origin = %s WHERE mac = %s", (new_origin, current_mac), fetchone=False)
-    if updated_rows:
-        config_file_path = modify_xml_config(new_origin)
-        if config_file_path:
-            return send_file(config_file_path, mimetype='text/xml')
-        else:
-            return jsonify({'error': 'Failed to modify XML config'}), 500
-    else:
-        return jsonify({'error': 'No device found with the provided MAC or no update needed'}), 404
+# Flask-Route zum Anzeigen und Bearbeiten der Werte
 
+@app.route('/edit_vm_conf', methods=['GET', 'POST'])
+@auth.login_required
+def edit_vm_conf():
+    if request.method == 'GET':
+        # Lade die XML-Werte in ein Dictionary
+        config_values = load_config_values()
+        return render_template('index.html', config_values=config_values)
+    elif request.method == 'POST':
+        # Verarbeite die gesendeten Änderungen und aktualisiere die XML-Datei
+        updated_values = request.form.to_dict()
+        updated_values['useRawForInstructions'] = 'true' if 'useRawForInstructions' in updated_values else 'false'
+        try:
+            config_path = CONFIG_FILE_PATH
+            tree = ET.parse(config_path)
+            root = tree.getroot()
+            for elem in root.iter('string'):
+                name = elem.get('name')
+                if name in updated_values:
+                    elem.text = updated_values[name]
+            with open(config_path, 'w', encoding='utf-8') as config_file:
+                tree.write(config_file, encoding='unicode', xml_declaration=True)
+            return jsonify({'message': 'Changes saved successfully'}), 200
+        except ET.ParseError as e:
+            print(f"Error parsing XML: {e}")
+            return jsonify({'error': 'Failed to update XML config'}), 500
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            return jsonify({'error': 'Internal server error'}), 500
+
+def load_config_values(config_path=CONFIG_FILE_PATH):
+    try:
+        tree = ET.parse(config_path)
+        root = tree.getroot()
+        config_values = {}
+        for elem in root:
+            name = elem.get('name')
+            if elem.tag == 'string':
+                value = elem.text
+            elif elem.tag == 'boolean':
+                value = elem.get('value')
+            elif elem.tag == 'int':
+                value = elem.get('value')
+            else:
+                continue  # Ignoriert andere Tags
+            config_values[name] = value
+        print(config_values)  # Debug-Ausgabe
+        return config_values
+    except ET.ParseError as e:
+        print(f"Error parsing XML: {e}")
+        return None
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return None
 
 @app.route('/autoconfig/mymac', methods=['POST'])
 @auth.login_required
@@ -369,6 +412,7 @@ def handle_mac_request():
     except Exception as e:
         logger.error(f"Ein Fehler ist aufgetreten: {e}")
         return jsonify({'error': 'Internal server error'}), 500
+
 
 def get_apk_version(apk_path):
     try:
