@@ -136,32 +136,33 @@ def format_mac(mac):
     return ':'.join(mac[i:i+2] for i in range(0, len(mac), 2))
 
 
+
 def add_device_to_db(mac, origin):
-    # Format the MAC address
-    mac = format_mac(mac)    # Get a connection from the pool
+    # Die MAC-Adresse wird direkt verwendet, ohne zusätzliche Formatierung
     connection = pool.get_conn()
     try:
         with connection.cursor() as cursor:
-            # Check if the MAC address already exists
+            # Überprüfen, ob die MAC-Adresse bereits existiert
             cursor.execute("SELECT id FROM device WHERE mac = %s", (mac,))
             existing_device = cursor.fetchone()
 
             if existing_device:
-                # If the MAC address already exists, do not add it again
+                # Wenn die MAC-Adresse bereits existiert, wird sie nicht erneut hinzugefügt
                 return False, "Device with MAC {} already exists in the database.".format(mac)
 
-            # If the MAC address does not exist, add the new device
+            # Wenn die MAC-Adresse nicht existiert, wird das neue Gerät hinzugefügt
             insert_query = "INSERT INTO device (mac, origin) VALUES (%s, %s)"
             cursor.execute(insert_query, (mac, origin))
-            connection.commit()  # Commit the transaction
+            connection.commit()  # Transaktion bestätigen
             return True, "Device with MAC {} added successfully.".format(mac)
     except pymysql.MySQLError as e:
-        # If an error occurs, rollback the transaction
+        # Bei einem Fehler wird die Transaktion zurückgesetzt
         connection.rollback()
         return False, "Failed to add device. Error: {}".format(e)
     finally:
-        # Release the connection back to the pool
+        # Die Verbindung wird an den Pool zurückgegeben
         pool.release(connection)
+
 
 @app.route('/devices', methods=['POST'])
 @auth.login_required
