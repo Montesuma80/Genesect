@@ -13,4 +13,5 @@ PyMySQL==1.1.0
 pymysql-pooling==1.0.6
 werkzeug==3.0.1
 zipp==3.17.0
-apkutils==1.5.2
+apkutils==0.8.3
+
