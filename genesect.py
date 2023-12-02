@@ -378,43 +378,49 @@ def load_config_values(config_path=CONFIG_FILE_PATH):
 @auth.login_required
 def handle_mac_request():
     try:
+        # Extract MAC address from raw byte data in the request
         current_mac_bytes = request.data
-        current_mac = current_mac_bytes.decode('utf-8').strip()
-
-        logger.info(f"Empfangene MAC-Anfrage: {current_mac}")
-
-        if not current_mac:
+        if not current_mac_bytes:
             logger.warning("Keine MAC-Adresse in der Anfrage")
             return jsonify({'error': 'MAC is required'}), 400
 
+        current_mac = current_mac_bytes.decode('utf-8').strip()
+        logger.info(f"Empfangene MAC-Anfrage: {current_mac}")
+
+        # First check in the device table
         device = query_database("SELECT origin FROM device WHERE mac = %s", (current_mac,))
         if device:
             logger.info(f"Bestätigte MAC-Adresse: {current_mac}")
             return jsonify({'response': 'confirmed'})
 
+        # Then check in the status table if not found in device table
         status_entry = query_database("SELECT status, new_mac FROM status WHERE anfrage_mac = %s", (current_mac,))
-        if status_entry and isinstance(status_entry, (list, tuple)) and len(status_entry) > 0:
-            status, new_mac = status_entry[0]
+        if status_entry:
+            status, new_mac = status_entry['status'], status_entry['new_mac']
             logger.info(f"Status-Eintrag gefunden: {status}, {new_mac}")
+
             if status == 'change' and new_mac:
-                return jsonify({'response': 'change', 'new_mac': new_mac})
-            else:
+                return jsonify({'response': f"{status} + {new_mac}"})
+            elif status in ['waiting', 'confirmed']:
                 return jsonify({'response': status})
+            else:
+                logger.warning(f"Unerwarteter Status für MAC {current_mac}: {status}")
+                return jsonify({'error': f'Unexpected status: {status}'}), 400
 
-        existing_entry = query_database("SELECT * FROM status WHERE anfrage_mac = %s", (current_mac,))
-        if existing_entry:
-            logger.info(f"Eintrag für {current_mac} existiert bereits. Keine Aktion erforderlich.")
-            return jsonify({'response': 'existing'})
+        else:
+            # If not found in both tables, insert into status table
+            logger.info(f"Unbekannte MAC-Adresse: {current_mac}, Status auf 'waiting' gesetzt")
+            query_database("INSERT INTO status (anfrage_mac, status) VALUES (%s, 'waiting')", (current_mac,))
+            return jsonify({'response': 'waiting'})
 
-        logger.info(f"Unbekannte MAC-Adresse: {current_mac}, Status auf 'waiting' gesetzt")
-        query_database("INSERT INTO status (anfrage_mac, status) VALUES (%s, 'waiting')", (current_mac,))
-        logger.debug(f"Status für {current_mac} in die Datenbank eingefügt")
-
-        return jsonify({'response': 'waiting'})
-
+    except pymysql.MySQLError as e:
+        logger.error(f"Database error occurred: {e}")
+        return jsonify({'error': 'Database error'}), 500
     except Exception as e:
         logger.error(f"Ein Fehler ist aufgetreten: {e}")
-        return jsonify({'error': 'Internal server error'}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
+
+
 
 
 def get_apk_version(apk_path):
