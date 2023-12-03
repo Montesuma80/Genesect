@@ -164,6 +164,7 @@ def add_device_to_db(mac, origin):
         pool.release(connection)
 
 
+
 @app.route('/devices', methods=['POST'])
 @auth.login_required
 def add_device():
@@ -171,21 +172,16 @@ def add_device():
     mac = data.get('mac', '')
     origin = data.get('origin', '')
 
-    # Validierung der MAC-Adresse
-    if not re.match("^([0-9A-Fa-f]{2}:){5}([0-9A-Fa-f]{2})$", mac):
-       return jsonify({'error': 'Ungültige MAC-Adresse.'}), 400
-
-
     # Validierung der Herkunft (z. B. darf nicht leer sein)
     if not origin:
         return jsonify({'error': 'Herkunft ist erforderlich.'}), 400
 
-    # Das Gerät zur Datenbank hinzufügen
+    # Das Gerät zur Datenbank hinzufügen, auch wenn keine MAC-Adresse vorhanden ist
     success, message = add_device_to_db(mac, origin)
     if success:
         return jsonify({'message': message}), 200
     else:
-        return jsonify({'error': message}), 500 
+        return jsonify({'error': message}), 500
 
 
 from flask import jsonify, abort
@@ -199,28 +195,30 @@ def assign_device(waiting_mac, origin):
     # Abfrage der MAC-Adresse für den angegebenen Ursprung
     query_result = query_database("SELECT mac FROM device WHERE origin = %s", (origin,), fetchone=True)
 
-    # Überprüfen, ob das Abfrageergebnis vorhanden ist
-    if query_result is None:
-        print(f"No device found for origin '{origin}'")
-        return jsonify({'error': 'No device found for the given origin.'}), 404
-
-    origin_mac = query_result['mac']
-    print(f"Found MAC: {origin_mac} for origin: '{origin}'. Updating status...")
-
     try:
-        # Aktualisieren des Status in der Datenbank
         connection = pool.get_conn()
         with connection.cursor() as cursor:
-            cursor.execute("UPDATE status SET status = 'change', new_mac = %s WHERE anfrage_mac = %s", (origin_mac, waiting_mac))
+            if query_result:
+                origin_mac = query_result['mac']
+                if not origin_mac:  # Wenn MAC-Feld leer ist
+                    print(f"No MAC for origin '{origin}', updating with waiting MAC {waiting_mac}")
+                    cursor.execute("UPDATE device SET mac = %s WHERE origin = %s", (waiting_mac, origin))
+                else:
+                    print(f"Found MAC: {origin_mac} for origin: '{origin}'. Updating status...")
+                    cursor.execute("UPDATE status SET status = 'change', new_mac = %s WHERE anfrage_mac = %s", (origin_mac, waiting_mac))
+            else:
+                print(f"No device found for origin '{origin}', creating new device with waiting MAC {waiting_mac}")
+                cursor.execute("INSERT INTO device (mac, origin) VALUES (%s, %s)", (waiting_mac, origin))
+
             connection.commit()  # Commit der Transaktion
-        print(f"Status updated for waiting MAC {waiting_mac}")
-        return jsonify({'status': 'success', 'message': 'Device status updated successfully.'}), 200
+            print(f"Operation successful for origin '{origin}'")
+            return jsonify({'status': 'success', 'message': 'Operation completed successfully.'}), 200
+
     except Exception as e:
-        print(f"Error in updating status: {e}")
-        return jsonify({'error': 'Failed to update the status of the waiting device.'}), 500
+        print(f"Error in operation: {e}")
+        return jsonify({'error': 'Failed to complete the operation.'}), 500
     finally:
         pool.release(connection)
-
 
 
 @app.route('/devices/<int:device_id>', methods=['PUT'])
